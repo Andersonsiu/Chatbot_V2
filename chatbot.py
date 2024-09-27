@@ -22,6 +22,8 @@ if 'delivery_cities' not in st.session_state:
     st.session_state.delivery_cities = []
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'order' not in st.session_state:
+    st.session_state.order = []
 
 def load_menu_from_csv():
     try:
@@ -54,9 +56,11 @@ def moderate_content(message):
 
 def process_user_query(query):
     if "menú" in query.lower() or "carta" in query.lower():
-        return consult_menu_csv(query)
+        consult_menu_csv()
+        return None  # No se necesita generar una respuesta adicional
     elif "pedir" in query.lower() or "ordenar" in query.lower():
-        return start_order_process(query)
+        start_order_process()
+        return None
     elif "entrega" in query.lower() or "reparto" in query.lower():
         return consult_delivery_cities(query)
     elif "información nutricional" in query.lower() or "calorías" in query.lower():
@@ -64,18 +68,17 @@ def process_user_query(query):
     else:
         return process_general_query(query)
 
-def consult_menu_csv(query):
-    response = "Aquí está nuestro menú:\n\n"
+def consult_menu_csv():
+    st.subheader("📋 Menú del Día")
     for category, items in st.session_state.menu.items():
-        response += f"{category}:\n"
+        st.write(f"**{category}**")
         for item in items:
-            response += f"- {item['Item']}: {item['Serving Size']}, {item['Calories']} calorías\n"
-        response += "\n"
-    return response
+            st.write(f"- {item['Item']}: {item['Serving Size']}, {item['Calories']} calorías")
+    st.write("Para realizar un pedido, escribe 'quiero ordenar' y sigue las instrucciones.")
 
 def get_nutritional_info(query):
     item_name = query.split("de ")[-1].strip().lower()
-    
+
     for category, items in st.session_state.menu.items():
         for item in items:
             if item['Item'].lower() == item_name:
@@ -86,14 +89,25 @@ def get_nutritional_info(query):
                        f"Sodio: {item['Sodium']}mg ({item['Sodium (% Daily Value)']}% del valor diario)\n" \
                        f"Carbohidratos: {item['Carbohydrates']}g ({item['Carbohydrates (% Daily Value)']}% del valor diario)\n" \
                        f"Proteínas: {item['Protein']}g"
-    
+
     return "Lo siento, no pude encontrar información nutricional para ese artículo."
 
-def start_order_process(query):
-    category = random.choice(list(st.session_state.menu.keys()))
-    order = random.choice(st.session_state.menu[category])
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return f"Orden registrada: {order['Item']} - Timestamp: {timestamp}"
+def start_order_process():
+    st.subheader("🛒 Realizar Pedido")
+    selected_items = []
+    for category, items in st.session_state.menu.items():
+        st.write(f"**{category}**")
+        for item in items:
+            if st.checkbox(f"{item['Item']} ({item['Serving Size']}, {item['Calories']} calorías)", key=item['Item']):
+                selected_items.append(item)
+
+    if st.button("Confirmar Pedido"):
+        if selected_items:
+            st.session_state.order.extend(selected_items)
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.success(f"Orden registrada: {[item['Item'] for item in selected_items]} - Timestamp: {timestamp}")
+        else:
+            st.warning("No has seleccionado ningún artículo.")
 
 def consult_delivery_cities(query):
     response = "Realizamos entregas en las siguientes ciudades:\n"
@@ -121,6 +135,8 @@ def process_general_query(query):
         return "Lo siento, no puedo procesar consultas generales en este momento debido a limitaciones técnicas."
 
 def generate_response(query_result):
+    if query_result is None:
+        return  # No se necesita generar respuesta
     if openai_available:
         try:
             response = openai.ChatCompletion.create(
@@ -136,29 +152,39 @@ def generate_response(query_result):
             st.error(f"Error al generar la respuesta: {e}")
             return "Lo siento, ocurrió un error al generar la respuesta."
     else:
-        return query_result 
+        return query_result
 
 def main():
-    st.title("Chatbot de Restaurante")
-    
+    st.title("🍽️ Chatbot de Restaurante")
+
     if st.button("Inicializar Chatbot"):
         initialize_chatbot()
-    
+
     user_message = st.text_input("Escribe tu mensaje aquí:")
-    
+
     if st.button("Enviar"):
         if not moderate_content(user_message):
             st.error("Lo siento, tu mensaje no es apropiado. Por favor, intenta de nuevo.")
         else:
             query_result = process_user_query(user_message)
             response = generate_response(query_result)
-            
+
             st.session_state.chat_history.append(("Usuario", user_message))
-            st.session_state.chat_history.append(("Chatbot", response))
-    
-    st.subheader("Historial de Chat")
+            if response:
+                st.session_state.chat_history.append(("Chatbot", response))
+                st.write(response)
+
+    st.subheader("💬 Historial de Chat")
     for role, message in st.session_state.chat_history:
-        st.text(f"{role}: {message}")
+        st.write(f"**{role}:** {message}")
+
+    if st.session_state.order:
+        st.subheader("✅ Tu Pedido")
+        for item in st.session_state.order:
+            st.write(f"- {item['Item']}")
+        if st.button("Finalizar Pedido"):
+            st.success("¡Gracias por tu pedido! Pronto lo recibirás.")
+            st.session_state.order = []
 
 if __name__ == "__main__":
     main()
