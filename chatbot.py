@@ -104,29 +104,37 @@ def consult_delivery_cities(query):
 
 def process_general_query(query):
     if openai_available:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
-                {"role": "user", "content": query}
-            ],
-            max_tokens=500
-        )
-        return response.choices[0].message['content']
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",  # Modelo de OpenAI para chat
+                messages=[
+                    {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
+                    {"role": "user", "content": query}
+                ],
+                max_tokens=500
+            )
+            return response.choices[0].message['content']
+        except Exception as e:
+            st.error(f"Error al procesar la consulta: {e}")
+            return "Lo siento, ocurrió un error al procesar tu consulta."
     else:
         return "Lo siento, no puedo procesar consultas generales en este momento debido a limitaciones técnicas."
 
 def generate_response(query_result):
     if openai_available:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
-                {"role": "user", "content": f"Basado en la siguiente información: '{query_result}', genera una respuesta amigable y natural para un cliente de restaurante:"}
-            ],
-            max_tokens=150
-        )
-        return response.choices[0].message['content']
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
+                    {"role": "user", "content": f"Basado en la siguiente información: '{query_result}', genera una respuesta amigable y natural para un cliente de restaurante:"}
+                ],
+                max_tokens=150
+            )
+            return response.choices[0].message['content']
+        except Exception as e:
+            st.error(f"Error al generar la respuesta: {e}")
+            return "Lo siento, ocurrió un error al generar la respuesta."
     else:
         return query_result 
 
