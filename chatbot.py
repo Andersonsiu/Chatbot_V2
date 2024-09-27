@@ -3,11 +3,17 @@ import os
 import csv
 from datetime import datetime
 import random
-from groq import Groq
-# Inicialización del cliente Groq
 
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+try:
+    from groq import Groq
+    groq_available = True
+except ImportError:
+    st.error("Error: La librería 'groq' no está instalada. Algunas funcionalidades no estarán disponibles.")
+    groq_available = False
 
+# Inicialización del cliente Groq solo si está disponible
+if groq_available:
+    client = Groq(api_key=st.secrets.get("GROQ_API_KEY", ""))
 
 # Inicialización de variables de estado de Streamlit
 if 'menu' not in st.session_state:
@@ -40,10 +46,10 @@ def load_delivery_cities():
 def initialize_chatbot():
     load_menu_from_csv()
     load_delivery_cities()
-    st.success("Chatbot initialized successfully!")
+    st.success("¡Chatbot inicializado exitosamente!")
 
 def moderate_content(message):
-    offensive_words = ['palabrota1', 'palabrota2', 'palabrota3']  # Add more as needed
+    offensive_words = ['palabrota1', 'palabrota2', 'palabrota3']  # Agrega más si es necesario
     return not any(word in message.lower() for word in offensive_words)
 
 def process_user_query(query):
@@ -97,7 +103,7 @@ def consult_delivery_cities(query):
     return response
 
 def process_general_query(query):
-    if st.session_state.groq_available:
+    if groq_available:
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
@@ -111,7 +117,7 @@ def process_general_query(query):
         return "Lo siento, no puedo procesar consultas generales en este momento debido a limitaciones técnicas."
 
 def generate_response(query_result):
-    if st.session_state.groq_available:
+    if groq_available:
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
@@ -126,8 +132,6 @@ def generate_response(query_result):
 
 def main():
     st.title("Chatbot de Restaurante")
-    
-    
     
     if st.button("Inicializar Chatbot"):
         initialize_chatbot()
@@ -150,4 +154,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
