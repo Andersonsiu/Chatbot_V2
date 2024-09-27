@@ -5,15 +5,15 @@ from datetime import datetime
 import random
 
 try:
-    from groq import Groq
-    groq_available = True
+    import openai
+    openai_available = True
 except ImportError:
-    st.error("Error: La librería 'groq' no está instalada. Algunas funcionalidades no estarán disponibles.")
-    groq_available = False
+    st.error("Error: La librería 'openai' no está instalada. Algunas funcionalidades no estarán disponibles.")
+    openai_available = False
 
-# Inicialización del cliente Groq solo si está disponible
-if groq_available:
-    client = Groq(api_key=st.secrets.get("GROQ_API_KEY", ""))
+# Inicialización del cliente OpenAI solo si está disponible
+if openai_available:
+    openai.api_key = st.secrets.get("OPENAI_API_KEY", "")
 
 # Inicialización de variables de estado de Streamlit
 if 'menu' not in st.session_state:
@@ -103,30 +103,30 @@ def consult_delivery_cities(query):
     return response
 
 def process_general_query(query):
-    if groq_available:
-        chat_completion = client.chat.completions.create(
+    if openai_available:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
                 {"role": "user", "content": query}
             ],
-            model="mixtral-8x7b-32768",
             max_tokens=500
         )
-        return chat_completion.choices[0].message.content
+        return response.choices[0].message['content']
     else:
         return "Lo siento, no puedo procesar consultas generales en este momento debido a limitaciones técnicas."
 
 def generate_response(query_result):
-    if groq_available:
-        chat_completion = client.chat.completions.create(
+    if openai_available:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
                 {"role": "user", "content": f"Basado en la siguiente información: '{query_result}', genera una respuesta amigable y natural para un cliente de restaurante:"}
             ],
-            model="mixtral-8x7b-32768",
             max_tokens=150
         )
-        return chat_completion.choices[0].message.content
+        return response.choices[0].message['content']
     else:
         return query_result 
 
