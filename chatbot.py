@@ -11,6 +11,8 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'order' not in st.session_state:
     st.session_state.order = []
+if 'user_input' not in st.session_state:
+    st.session_state.user_input = ''
 
 def load_menu_from_csv():
     try:
@@ -112,16 +114,23 @@ def main():
         else:
             st.markdown(f"**{role}:** {message}")
 
-    # Input de usuario estilo chat
-    user_message = st.text_input("Escribe tu mensaje aquí:", key=str(datetime.now()))
-    if user_message:
-        if not moderate_content(user_message):
-            st.error("Lo siento, tu mensaje no es apropiado. Por favor, intenta de nuevo.")
-        else:
-            st.session_state.chat_history.append(("Usuario", user_message))
-            response = process_user_query(user_message)
-            st.session_state.chat_history.append(("Chatbot", response))
-            st.experimental_rerun()  # Actualiza la interfaz para mostrar el nuevo mensaje
+    # Input de usuario estilo chat con botón enviar en el mismo recuadro
+    st.write("---")
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.text_input("Escribe tu mensaje aquí:", key='user_input')
+    with col2:
+        if st.button("Enviar"):
+            user_message = st.session_state.user_input
+            if user_message:
+                if not moderate_content(user_message):
+                    st.error("Lo siento, tu mensaje no es apropiado. Por favor, intenta de nuevo.")
+                else:
+                    st.session_state.chat_history.append(("Usuario", user_message))
+                    response = process_user_query(user_message)
+                    st.session_state.chat_history.append(("Chatbot", response))
+                    st.session_state.user_input = ''  # Limpiar el campo de texto
+                    st.experimental_rerun()
 
     # Mostrar resumen del pedido si hay artículos
     if st.session_state.order:
