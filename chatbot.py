@@ -169,12 +169,8 @@ def generate_response(query_result):
 def main():
     st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
 
-    # Encabezado con logotipo
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.image("logo.png", width=100)  # Reemplaza 'logo.png' con la ruta a tu logotipo
-    with col2:
-        st.title("Chatbot de Restaurante")
+    # Encabezado sin logotipo
+    st.title("Chatbot de Restaurante")
 
     st.markdown("---")
 
