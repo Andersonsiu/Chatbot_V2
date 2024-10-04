@@ -69,8 +69,6 @@ def process_user_query(query):
         return confirm_order()
     elif "entrega" in query.lower() or "reparto" in query.lower():
         return consult_delivery_cities(query)
-    elif "información nutricional" in query.lower() or "calorías" in query.lower():
-        return get_nutritional_info(query)
     else:
         return process_general_query(query)
 
@@ -79,23 +77,9 @@ def consult_menu_csv(query):
     for category, items in st.session_state.menu.items():
         response += f"### {category}\n"
         for item in items:
-            response += f"- **{item['Item']}**: {item['Serving Size']}, {item['Calories']} calorías\n"
+            response += f"- **{item['Item']}**: {item['Serving Size']}, Precio: ${item['Price']}\n"
         response += "\n"
     return response
-
-def get_nutritional_info(query):
-    item_name = query.split("de")[-1].strip().lower()
-    for category, items in st.session_state.menu.items():
-        for item in items:
-            if item['Item'].lower() == item_name:
-                return f"**Información nutricional para {item['Item']}:**\n" \
-                       f"- Tamaño de porción: {item['Serving Size']}\n" \
-                       f"- Calorías: {item['Calories']}\n" \
-                       f"- Grasa total: {item['Total Fat']}g ({item['Total Fat (% Daily Value)']}% VD)\n" \
-                       f"- Sodio: {item['Sodium']}mg ({item['Sodium (% Daily Value)']}% VD)\n" \
-                       f"- Carbohidratos: {item['Carbohydrates']}g ({item['Carbohydrates (% Daily Value)']}% VD)\n" \
-                       f"- Proteínas: {item['Protein']}g"
-    return "Lo siento, no pude encontrar información nutricional para ese artículo."
 
 def start_order_process(query):
     st.session_state.order_in_progress = True
@@ -104,7 +88,7 @@ def start_order_process(query):
         for item in items:
             if item['Item'].lower() == item_name:
                 st.session_state.current_order.append(item)
-                return f"Has agregado **{item['Item']}** a tu pedido. ¿Deseas algo más?"
+                return f"Has agregado **{item['Item']}** a tu pedido por un precio de ${item['Price']}. ¿Deseas algo más?"
     return "No encontré ese producto en nuestro menú. Por favor, intenta nuevamente."
 
 def cancel_order():
@@ -117,10 +101,11 @@ def cancel_order():
 
 def confirm_order():
     if st.session_state.order_in_progress and st.session_state.current_order:
+        total_price = sum(float(item['Price']) for item in st.session_state.current_order)
         save_order_to_csv(st.session_state.current_order)
         st.session_state.order_in_progress = False
         st.session_state.current_order = []
-        return "Tu pedido ha sido confirmado. ¡Gracias por tu compra!"
+        return f"Tu pedido ha sido confirmado. El precio total es ${total_price:.2f}. ¡Gracias por tu compra!"
     else:
         return "No tienes un pedido en curso para confirmar."
 
@@ -128,14 +113,15 @@ def save_order_to_csv(order):
     filename = 'orders.csv'
     file_exists = os.path.isfile(filename)
     with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Date', 'Item']
+        fieldnames = ['Date', 'Item', 'Price']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         if not file_exists:
             writer.writeheader()
         for item in order:
             writer.writerow({
                 'Date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'Item': item['Item']
+                'Item': item['Item'],
+                'Price': item['Price']
             })
 
 def consult_delivery_cities(query):
@@ -189,29 +175,29 @@ def main():
             st.session_state.chat_history.append(("Usuario", user_message))
             st.session_state.chat_history.append(("Chatbot", response))
 
-    # Mostrar historial de chat con nuevos estilos
+    # Mostrar historial de chat
     st.markdown("### Historial de Chat")
     chat_container = st.container()
     with chat_container:
         for role, message in st.session_state.chat_history:
             if role == "Usuario":
-                # Mensaje del usuario
                 st.markdown(
                     f"<div style='text-align: right; background-color: #00bfa5; color: white; padding: 10px; border-radius: 10px; margin: 5px 10px 5px 50px;'>{message}</div>",
                     unsafe_allow_html=True
                 )
             else:
-                # Mensaje del chatbot
                 st.markdown(
                     f"<div style='text-align: left; background-color: #262626; color: #ffffff; padding: 10px; border-radius: 10px; margin: 5px 50px 5px 10px;'>{message}</div>",
                     unsafe_allow_html=True
                 )
 
-    # Mostrar el pedido actual
+    # Mostrar el pedido actual y el precio total
     if st.session_state.current_order:
         st.markdown("### Pedido Actual")
-        order_items = [item['Item'] for item in st.session_state.current_order]
+        order_items = [f"{item['Item']} - ${item['Price']}" for item in st.session_state.current_order]
         st.write(", ".join(order_items))
+        total_price = sum(float(item['Price']) for item in st.session_state.current_order)
+        st.write(f"**Precio Total:** ${total_price:.2f}")
 
     # Información del restaurante en el pie de página
     st.markdown("---")
