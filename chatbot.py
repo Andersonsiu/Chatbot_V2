@@ -155,17 +155,18 @@ def generate_response(query_result):
 def main():
     st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
 
-    # Encabezado
-    st.title("Chatbot de Restaurante")
+    # Encabezado estilizado
+    st.markdown("<h1 style='text-align: center; color: #ff6347;'>🍽️ Bienvenido al Chatbot de Restaurante 🍽️</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #ff6347;'>¡Estamos aquí para tomar tu pedido y responder a tus preguntas!</p>", unsafe_allow_html=True)
 
     st.markdown("---")
 
-    if st.sidebar.button("Inicializar Chatbot"):
-        initialize_chatbot()
+    # Campo de entrada de usuario y botón personalizado
+    user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input", placeholder="¿Qué te gustaría ordenar hoy?")
+    send_button = st.button("Enviar", key="send_button")
 
-    user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input")
-
-    if st.button("Enviar"):
+    # Procesar la consulta del usuario al hacer clic en enviar
+    if send_button:
         if not moderate_content(user_message):
             st.error("Lo siento, tu mensaje no es apropiado. Por favor, intenta de nuevo.")
         else:
@@ -175,25 +176,27 @@ def main():
             st.session_state.chat_history.append(("Usuario", user_message))
             st.session_state.chat_history.append(("Chatbot", response))
 
-    # Mostrar historial de chat
-    st.markdown("### Historial de Chat")
+    # Mostrar historial de chat estilizado
+    st.markdown("### 🗨️ Historial de Chat")
     chat_container = st.container()
     with chat_container:
         for role, message in st.session_state.chat_history:
             if role == "Usuario":
+                # Mensaje del usuario - fondo azul claro
                 st.markdown(
-                    f"<div style='text-align: right; background-color: #00bfa5; color: white; padding: 10px; border-radius: 10px; margin: 5px 10px 5px 50px;'>{message}</div>",
+                    f"<div style='text-align: right; background-color: #add8e6; color: black; padding: 10px; border-radius: 15px; margin: 5px 10px 5px 50px; max-width: 70%;'>{message}</div>",
                     unsafe_allow_html=True
                 )
             else:
+                # Mensaje del chatbot - fondo naranja claro
                 st.markdown(
-                    f"<div style='text-align: left; background-color: #262626; color: #ffffff; padding: 10px; border-radius: 10px; margin: 5px 50px 5px 10px;'>{message}</div>",
+                    f"<div style='text-align: left; background-color: #ffe4b5; color: black; padding: 10px; border-radius: 15px; margin: 5px 50px 5px 10px; max-width: 70%;'>{message}</div>",
                     unsafe_allow_html=True
                 )
 
     # Mostrar el pedido actual y el precio total
     if st.session_state.current_order:
-        st.markdown("### Pedido Actual")
+        st.markdown("### 🍽️ Pedido Actual")
         order_items = [f"{item['Item']} - ${item['Price']}" for item in st.session_state.current_order]
         st.write(", ".join(order_items))
         total_price = sum(float(item['Price']) for item in st.session_state.current_order)
@@ -201,7 +204,7 @@ def main():
 
     # Información del restaurante en el pie de página
     st.markdown("---")
-    st.markdown("**Restaurante Sabores Deliciosos** | Teléfono: (123) 456-7890 | Dirección: Calle Falsa 123, Ciudad Gourmet")
+    st.markdown("<p style='text-align: center; color: #ff6347;'>Restaurante Sabores Deliciosos | Teléfono: (123) 456-7890 | Dirección: Calle Falsa 123, Ciudad Gourmet</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
