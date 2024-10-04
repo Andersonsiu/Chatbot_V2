@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import csv
 from datetime import datetime
-import random
 
 try:
     import openai
@@ -45,24 +44,30 @@ def moderate_content(message):
     offensive_words = ['palabrota1', 'palabrota2', 'palabrota3']  # Agrega más palabras si es necesario
     return not any(word in message.lower() for word in offensive_words)
 
+def is_invalid_request(query):
+    # Detectar si la consulta es inválida o no deseada
+    invalid_phrases = [
+        "descuento", "cambiar el costo", "neumático", "ticket de bus",
+        "un millón", "mil unidades", "plato que no esté en la carta"
+    ]
+    return any(phrase in query for phrase in invalid_phrases) or not moderate_content(query)
+
 def process_user_query(query):
     query = query.lower()
+    
+    # Si la consulta es inválida, responder de forma genérica
+    if is_invalid_request(query):
+        return "Lo siento, no puedo procesar esa solicitud. Por favor, intenta con una consulta válida relacionada con el menú del restaurante."
+    
+    # Manejar preguntas válidas
     if "menú" in query or "carta" in query:
         return consult_menu_csv()
     elif "precio" in query and "productos" in query:
         return show_random_product_prices(3)
-    elif "descuento" in query:
-        return "Lo siento, actualmente no ofrecemos descuentos. ¡Nuestros precios ya son los mejores!"
-    elif "cambiar el costo" in query:
-        return "No es posible cambiar el costo total del pedido. Los precios son fijos."
     elif "ordenar" in query or "pedir" in query:
         return start_order_process(query)
     elif "cancelar" in query or "anular" in query or "ya no deseo mi orden" in query:
         return cancel_order()
-    elif "un millón" in query or "mil unidades" in query:
-        return "No es posible pedir tantas unidades. Por favor, elige una cantidad más razonable."
-    elif "ofende" in query or not moderate_content(query):
-        return "Por favor, mantén un lenguaje respetuoso. Estoy aquí para ayudarte con tu pedido."
     elif "algo para beber" in query or "gaseosas" in query:
         return suggest_drinks()
     else:
@@ -192,13 +197,11 @@ def main():
     with chat_container:
         for role, message in st.session_state.chat_history:
             if role == "Usuario":
-                # Mensaje del usuario con burbuja de chat estilizada
                 st.markdown(
                     f"<div style='text-align: right; background-color: #d1e7ff; color: black; padding: 10px; border-radius: 15px; margin: 5px 10px 5px 50px; max-width: 70%;'>{message}</div>",
                     unsafe_allow_html=True
                 )
             else:
-                # Mensaje del chatbot con burbuja de chat estilizada
                 st.markdown(
                     f"<div style='text-align: left; background-color: #ffeeba; color: black; padding: 10px; border-radius: 15px; margin: 5px 50px 5px 10px; max-width: 70%;'>{message}</div>",
                     unsafe_allow_html=True
