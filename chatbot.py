@@ -75,11 +75,11 @@ def process_user_query(query):
         return process_general_query(query)
 
 def consult_menu_csv(query):
-    response = "Aquí está nuestro menú:\n\n"
+    response = ""
     for category, items in st.session_state.menu.items():
-        response += f"{category}:\n"
+        response += f"### {category}\n"
         for item in items:
-            response += f"- {item['Item']}: {item['Serving Size']}, {item['Calories']} calorías\n"
+            response += f"- **{item['Item']}**: {item['Serving Size']}, {item['Calories']} calorías\n"
         response += "\n"
     return response
 
@@ -88,13 +88,13 @@ def get_nutritional_info(query):
     for category, items in st.session_state.menu.items():
         for item in items:
             if item['Item'].lower() == item_name:
-                return f"Información nutricional para {item['Item']}:\n" \
-                       f"Tamaño de porción: {item['Serving Size']}\n" \
-                       f"Calorías: {item['Calories']}\n" \
-                       f"Grasa total: {item['Total Fat']}g ({item['Total Fat (% Daily Value)']}% del valor diario)\n" \
-                       f"Sodio: {item['Sodium']}mg ({item['Sodium (% Daily Value)']}% del valor diario)\n" \
-                       f"Carbohidratos: {item['Carbohydrates']}g ({item['Carbohydrates (% Daily Value)']}% del valor diario)\n" \
-                       f"Proteínas: {item['Protein']}g"
+                return f"**Información nutricional para {item['Item']}:**\n" \
+                       f"- Tamaño de porción: {item['Serving Size']}\n" \
+                       f"- Calorías: {item['Calories']}\n" \
+                       f"- Grasa total: {item['Total Fat']}g ({item['Total Fat (% Daily Value)']}% VD)\n" \
+                       f"- Sodio: {item['Sodium']}mg ({item['Sodium (% Daily Value)']}% VD)\n" \
+                       f"- Carbohidratos: {item['Carbohydrates']}g ({item['Carbohydrates (% Daily Value)']}% VD)\n" \
+                       f"- Proteínas: {item['Protein']}g"
     return "Lo siento, no pude encontrar información nutricional para ese artículo."
 
 def start_order_process(query):
@@ -104,7 +104,7 @@ def start_order_process(query):
         for item in items:
             if item['Item'].lower() == item_name:
                 st.session_state.current_order.append(item)
-                return f"Has agregado {item['Item']} a tu pedido. ¿Deseas algo más?"
+                return f"Has agregado **{item['Item']}** a tu pedido. ¿Deseas algo más?"
     return "No encontré ese producto en nuestro menú. Por favor, intenta nuevamente."
 
 def cancel_order():
@@ -124,9 +124,6 @@ def confirm_order():
     else:
         return "No tienes un pedido en curso para confirmar."
 
-def inform_total_price():
-    return "Lo siento, no puedo proporcionar el precio total ya que no contamos con esa información."
-
 def save_order_to_csv(order):
     filename = 'orders.csv'
     file_exists = os.path.isfile(filename)
@@ -143,7 +140,7 @@ def save_order_to_csv(order):
 
 def consult_delivery_cities(query):
     response = "Realizamos entregas en las siguientes ciudades:\n"
-    for city in st.session_state.delivery_cities[:10]:  # Mostrar solo las primeras 10 ciudades
+    for city in st.session_state.delivery_cities[:10]:
         response += f"- {city}\n"
     response += "... y más ciudades. ¿Hay alguna ciudad específica que te interese?"
     return response
@@ -167,30 +164,24 @@ def process_general_query(query):
         return "Lo siento, no puedo procesar consultas generales en este momento debido a limitaciones técnicas."
 
 def generate_response(query_result):
-    if openai_available:
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Eres un asistente de restaurante amable y servicial."},
-                    {"role": "user", "content": f"Basado en la siguiente información: '{query_result}', genera una respuesta amigable y natural para un cliente de restaurante:"}
-                ],
-                max_tokens=150
-            )
-            return response.choices[0].message['content']
-        except Exception as e:
-            st.error(f"Error al generar la respuesta: {e}")
-            return "Lo siento, ocurrió un error al generar la respuesta."
-    else:
-        return query_result
+    return query_result
 
 def main():
-    st.title("Chatbot de Restaurante")
+    st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
 
-    if st.button("Inicializar Chatbot"):
+    # Encabezado con logotipo
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.image("logo.png", width=100)  # Reemplaza 'logo.png' con la ruta a tu logotipo
+    with col2:
+        st.title("Chatbot de Restaurante")
+
+    st.markdown("---")
+
+    if st.sidebar.button("Inicializar Chatbot"):
         initialize_chatbot()
 
-    user_message = st.text_input("Escribe tu mensaje aquí:")
+    user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input")
 
     if st.button("Enviar"):
         if not moderate_content(user_message):
@@ -202,9 +193,26 @@ def main():
             st.session_state.chat_history.append(("Usuario", user_message))
             st.session_state.chat_history.append(("Chatbot", response))
 
-    st.subheader("Historial de Chat")
-    for role, message in st.session_state.chat_history:
-        st.write(f"**{role}:** {message}")
+    # Mostrar historial de chat
+    st.markdown("### Historial de Chat")
+    chat_container = st.container()
+    with chat_container:
+        for role, message in st.session_state.chat_history:
+            if role == "Usuario":
+                st.markdown(f"<div style='text-align: right; background-color: #dcf8c6; padding: 8px; border-radius: 10px; margin: 5px;'>{message}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div style='text-align: left; background-color: #f1f0f0; padding: 8px; border-radius: 10px; margin: 5px;'>{message}</div>", unsafe_allow_html=True)
+
+    # Mostrar el pedido actual
+    if st.session_state.current_order:
+        st.markdown("### Pedido Actual")
+        order_items = [item['Item'] for item in st.session_state.current_order]
+        st.write(", ".join(order_items))
+
+    # Información del restaurante en el pie de página
+    st.markdown("---")
+    st.markdown("**Restaurante Sabores Deliciosos** | Teléfono: (123) 456-7890 | Dirección: Calle Falsa 123, Ciudad Gourmet")
 
 if __name__ == "__main__":
     main()
+
