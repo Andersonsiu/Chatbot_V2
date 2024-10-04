@@ -169,7 +169,7 @@ def generate_response(query_result):
 def main():
     st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
 
-    # Encabezado sin logotipo
+    # Encabezado
     st.title("Chatbot de Restaurante")
 
     st.markdown("---")
@@ -189,15 +189,23 @@ def main():
             st.session_state.chat_history.append(("Usuario", user_message))
             st.session_state.chat_history.append(("Chatbot", response))
 
-    # Mostrar historial de chat
+    # Mostrar historial de chat con nuevos estilos
     st.markdown("### Historial de Chat")
     chat_container = st.container()
     with chat_container:
         for role, message in st.session_state.chat_history:
             if role == "Usuario":
-                st.markdown(f"<div style='text-align: right; background-color: #dcf8c6; padding: 8px; border-radius: 10px; margin: 5px;'>{message}</div>", unsafe_allow_html=True)
+                # Mensaje del usuario
+                st.markdown(
+                    f"<div style='text-align: right; background-color: #00bfa5; color: white; padding: 10px; border-radius: 10px; margin: 5px 10px 5px 50px;'>{message}</div>",
+                    unsafe_allow_html=True
+                )
             else:
-                st.markdown(f"<div style='text-align: left; background-color: #f1f0f0; padding: 8px; border-radius: 10px; margin: 5px;'>{message}</div>", unsafe_allow_html=True)
+                # Mensaje del chatbot
+                st.markdown(
+                    f"<div style='text-align: left; background-color: #262626; color: #ffffff; padding: 10px; border-radius: 10px; margin: 5px 50px 5px 10px;'>{message}</div>",
+                    unsafe_allow_html=True
+                )
 
     # Mostrar el pedido actual
     if st.session_state.current_order:
@@ -211,4 +219,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
