@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import csv
+import random
 from datetime import datetime
 
 try:
@@ -10,35 +11,35 @@ except ImportError:
     st.error("Error: La librería 'openai' no está instalada. Algunas funcionalidades no estarán disponibles.")
     openai_available = False
 
-# Inicialización del cliente OpenAI solo si está disponible
+# Inicializar OpenAI solo si está disponible
 if openai_available:
     openai.api_key = st.secrets.get("OPENAI_API_KEY", "")
 
 # Inicialización de variables de estado de Streamlit
 if 'menu' not in st.session_state:
-    st.session_state.menu = {}
+    st.session_state['menu'] = {}
 if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
+    st.session_state['chat_history'] = []
 if 'current_order' not in st.session_state:
-    st.session_state.current_order = []
+    st.session_state['current_order'] = []
 if 'order_in_progress' not in st.session_state:
-    st.session_state.order_in_progress = False
+    st.session_state['order_in_progress'] = False
 
-def load_menu_from_csv():
-    try:
-        with open('menu.csv', 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                category = row['Category']
-                if category not in st.session_state.menu:
-                    st.session_state.menu[category] = []
-                st.session_state.menu[category].append(row)
-    except FileNotFoundError:
-        st.error("Error: El archivo 'menu.csv' no fue encontrado.")
-
-def initialize_chatbot():
-    load_menu_from_csv()
-    st.success("¡Chatbot inicializado exitosamente!")
+def load_menu_from_csv(filepath='menu.csv'):
+    if os.path.isfile(filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    category = row['Category']
+                    if category not in st.session_state.menu:
+                        st.session_state.menu[category] = []
+                    st.session_state.menu[category].append(row)
+            st.success("Menú cargado exitosamente.")
+        except Exception as e:
+            st.error(f"Error al cargar el menú: {e}")
+    else:
+        st.error(f"Error: El archivo '{filepath}' no fue encontrado.")
 
 def moderate_content(message):
     offensive_words = ['palabrota1', 'palabrota2', 'palabrota3']  # Agrega más palabras si es necesario
@@ -53,7 +54,7 @@ def is_invalid_request(query):
     return any(phrase in query for phrase in invalid_phrases) or not moderate_content(query)
 
 def process_user_query(query):
-    query = query.lower()
+    query = query.lower().strip()
     
     # Si la consulta es inválida, responder de forma genérica
     if is_invalid_request(query):
@@ -66,9 +67,9 @@ def process_user_query(query):
         return show_random_product_prices(3)
     elif "ordenar" in query or "pedir" in query:
         return start_order_process(query)
-    elif "cancelar" in query or "anular" in query or "ya no deseo mi orden" in query:
+    elif any(word in query for word in ["cancelar", "anular", "ya no deseo mi orden"]):
         return cancel_order()
-    elif "algo para beber" in query or "gaseosas" in query:
+    elif any(word in query for word in ["beber", "gaseosa", "bebidas"]):
         return suggest_drinks()
     else:
         return "Lo siento, no entendí tu solicitud. ¿Podrías reformular tu pregunta?"
@@ -76,7 +77,7 @@ def process_user_query(query):
 def consult_menu_csv():
     response = "Aquí está nuestro menú:\n\n"
     for category, items in st.session_state.menu.items():
-        response += f"{category}:\n"
+        response += f"**{category}**:\n"
         for item in items:
             response += f"- {item['Item']}: {item['Serving Size']}, Precio: ${item['Price']}\n"
         response += "\n"
@@ -84,6 +85,9 @@ def consult_menu_csv():
 
 def show_random_product_prices(count=3):
     all_items = [item for category in st.session_state.menu.values() for item in category]
+    if len(all_items) == 0:
+        return "Lo siento, no hay productos disponibles para mostrar precios."
+    
     random_items = random.sample(all_items, min(count, len(all_items)))
     response = "Aquí están los precios de algunos productos:\n\n"
     for item in random_items:
@@ -154,44 +158,27 @@ def confirm_order():
     else:
         return "No tienes un pedido en curso para confirmar."
 
-def save_order_to_csv(order):
-    filename = 'orders.csv'
+def save_order_to_csv(order, filename='orders.csv'):
     file_exists = os.path.isfile(filename)
-    with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Category', 'Item', 'Serving Size', 'Price', 'Quantity', 'Timestamp']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        if not file_exists:
-            writer.writeheader()
-        for item in order:
-            writer.writerow({
-                'Category': item['Category'],
-                'Item': item['Item'],
-                'Serving Size': item['Serving Size'],
-                'Price': item['Price'],
-                'Quantity': item['Quantity'],
-                'Timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
+    try:
+        with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['Category', 'Item', 'Serving Size', 'Price', 'Quantity', 'Timestamp']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            if not file_exists:
+                writer.writeheader()
+            for item in order:
+                writer.writerow({
+                    'Category': item['Category'],
+                    'Item': item['Item'],
+                    'Serving Size': item['Serving Size'],
+                    'Price': item['Price'],
+                    'Quantity': item['Quantity'],
+                    'Timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+    except Exception as e:
+        st.error(f"Error al guardar el pedido: {e}")
 
-def generate_response(query_result):
-    return query_result
-
-def main():
-    st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
-    st.markdown("<h1 style='text-align: center; color: #ff6347;'>🍽️ Chatbot de Restaurante 🍽️</h1>", unsafe_allow_html=True)
-
-    if st.button("Inicializar Chatbot"):
-        initialize_chatbot()
-
-    user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input", placeholder="¿Qué te gustaría pedir hoy?")
-    send_button = st.button("Enviar")
-
-    if send_button:
-        query_result = process_user_query(user_message)
-        response = generate_response(query_result)
-        st.session_state.chat_history.append(("Usuario", user_message))
-        st.session_state.chat_history.append(("Chatbot", response))
-
-    # Mostrar historial de chat con burbujas mejoradas
+def display_chat_history():
     st.markdown("### 🗨️ Historial de Chat")
     chat_container = st.container()
     with chat_container:
@@ -206,6 +193,24 @@ def main():
                     f"<div style='text-align: left; background-color: #ffeeba; color: black; padding: 10px; border-radius: 15px; margin: 5px 50px 5px 10px; max-width: 70%;'>{message}</div>",
                     unsafe_allow_html=True
                 )
+
+def main():
+    st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
+    st.markdown("<h1 style='text-align: center; color: #ff6347;'>🍽️ Chatbot de Restaurante 🍽️</h1>", unsafe_allow_html=True)
+
+    if st.button("Inicializar Chatbot"):
+        load_menu_from_csv()
+
+    user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input", placeholder="¿Qué te gustaría pedir hoy?")
+    send_button = st.button("Enviar")
+
+    if send_button and user_message:
+        query_result = process_user_query(user_message)
+        st.session_state.chat_history.append(("Usuario", user_message))
+        st.session_state.chat_history.append(("Chatbot", query_result))
+
+    # Mostrar historial de chat con burbujas
+    display_chat_history()
 
     # Mostrar el pedido actual y el precio total
     if st.session_state.current_order:
