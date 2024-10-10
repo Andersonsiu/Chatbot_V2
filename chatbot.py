@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️")
 
 # Inicialización del cliente OpenAI
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Cargar datos
 @st.cache_data
