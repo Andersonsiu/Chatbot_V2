@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
-import OpenAI
+from openai import OpenAI
 import json
 import logging
 
@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️")
 
 # Inicialización del cliente OpenAI
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Cargar datos
 @st.cache_data
