@@ -1,4 +1,5 @@
-streamlit==1.24.0  # O la última versión estable
-pandas==2.0.3      # Para manejo de dataframes y CSV
-openai==0.11.5     # Cliente para usar la API de OpenAI
-regex==2023.10.3   # Alternativa más avanzada a 're', se asegura que el soporte de regex sea sólido
+streamlit==1.32.0
+pandas==2.2.3
+openai==1.12.0
+
+
