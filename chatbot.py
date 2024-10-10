@@ -74,13 +74,16 @@ def process_user_query(query):
     else:
         return "Lo siento, no entendí tu solicitud. ¿Podrías reformular tu pregunta?"
 
+# Mejora la visualización del menú
 def consult_menu_csv():
-    response = "Aquí está nuestro menú:\n\n"
+    response = "### Aquí está nuestro menú:\n"
     for category, items in st.session_state.menu.items():
         response += f"**{category}**:\n"
-        for item in items:
-            response += f"- {item['Item']}: {item['Serving Size']}, Precio: ${item['Price']}\n"
-        response += "\n"
+        # Usa columnas para mejorar la presentación
+        cols = st.columns(len(items))
+        for idx, item in enumerate(items):
+            with cols[idx % len(cols)]:
+                st.markdown(f"- **{item['Item']}**: {item['Serving Size']}, Precio: ${item['Price']}")
     return response
 
 def show_random_product_prices(count=3):
@@ -194,6 +197,33 @@ def display_chat_history():
                     unsafe_allow_html=True
                 )
 
+# Mejora la visualización del pedido actual
+def display_current_order():
+    if st.session_state.current_order:
+        st.markdown("### 🛒 Pedido Actual")
+        # Usar una tabla para mostrar los ítems del pedido
+        order_table = """
+        <table style='width:100%;'>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+            </tr>
+        """
+        for item in st.session_state.current_order:
+            order_table += f"""
+            <tr>
+                <td>{item['Item']}</td>
+                <td>{item['Quantity']}</td>
+                <td>${item['Price']}</td>
+            </tr>
+            """
+        order_table += "</table>"
+        st.markdown(order_table, unsafe_allow_html=True)
+
+        total_price = sum(float(item['Price']) for item in st.session_state.current_order)
+        st.write(f"**Precio Total:** ${total_price:.2f}")
+
 def main():
     st.set_page_config(page_title="Chatbot de Restaurante", page_icon="🍽️", layout="wide")
     st.markdown("<h1 style='text-align: center; color: #ff6347;'>🍽️ Chatbot de Restaurante 🍽️</h1>", unsafe_allow_html=True)
@@ -204,7 +234,7 @@ def main():
     user_message = st.text_input("Escribe tu mensaje aquí:", key="user_input", placeholder="¿Qué te gustaría pedir hoy?")
     send_button = st.button("Enviar")
 
-    if send_button and user_message:
+    if send_button and user_message.strip():  # Validación de texto vacío
         query_result = process_user_query(user_message)
         st.session_state.chat_history.append(("Usuario", user_message))
         st.session_state.chat_history.append(("Chatbot", query_result))
@@ -213,12 +243,11 @@ def main():
     display_chat_history()
 
     # Mostrar el pedido actual y el precio total
-    if st.session_state.current_order:
-        st.markdown("### 🛒 Pedido Actual")
-        order_items = [f"{item['Item']} x{item['Quantity']} - ${item['Price']}" for item in st.session_state.current_order]
-        st.write(", ".join(order_items))
-        total_price = sum(float(item['Price']) for item in st.session_state.current_order)
-        st.write(f"**Precio Total:** ${total_price:.2f}")
+    display_current_order()
+
+    # Confirmar pedido
+    if st.session_state.current_order and st.button("Confirmar Pedido"):
+        st.session_state.chat_history.append(("Chatbot", confirm_order()))
 
     # Información del restaurante en el pie de página
     st.markdown("---")
